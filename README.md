@@ -1,2 +1,2 @@
-# banque-chalus-scripts
+# banque-c-scripts
 Scripts allowing to get information
