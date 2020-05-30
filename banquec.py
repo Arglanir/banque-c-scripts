@@ -1,38 +1,9 @@
 import sys, subprocess, os, time, contextlib
-try:
-    import selenium
-except ImportError:
-    print("Installing Selenium")
-    p = subprocess.Popen([sys.executable, "-m", "pip", "install", "-U", "selenium"])
-    p.communicate()
-    import selenium
-
+from preparation import getOneDriver
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import JavascriptException, NoSuchElementException
 
-DRIVER = webdriver.Firefox
-def DRIVERCREATION():
-    from selenium.webdriver.firefox.options import Options
-    options = Options()
-    options.headless = True
-    profile = webdriver.FirefoxProfile()
-    profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/plain,text/html")
-    profile.set_preference("browser.download.folderLis", "1")
-    return DRIVER(firefox_profile = profile, options=options)
-
-FILESTOFETCH = {
-# https://github.com/mozilla/geckodriver/releases
-webdriver.Firefox: "https://github.com/mozilla/geckodriver/releases/download/v0.26.0/geckodriver-v0.26.0-win64.zip",
-# https://chromedriver.chromium.org/downloads
-webdriver.Chrome: "https://chromedriver.storage.googleapis.com/83.0.4103.39/chromedriver_win32.zip"
-}
-# installing firefox driver
-#   
-#   
-EXECUTABLEFOLDER = "drivers"
-SCRIPTFOLDER = os.path.dirname(os.path.abspath(__file__))
-JSFOLDER = os.path.dirname(SCRIPTFOLDER)
 CURRENTDRIVER = None
 
 niceCountDown = time.sleep
@@ -42,24 +13,7 @@ import configuration
 @contextlib.contextmanager
 def getBanqueCDriver(quit_at_end=True):
     global CURRENTDRIVER
-    destfoldertopath = os.path.join(SCRIPTFOLDER, EXECUTABLEFOLDER)
-    try:
-        if os.path.exists(destfoldertopath):
-            print("Update PATH")
-            os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], destfoldertopath])
-        driver = DRIVERCREATION()
-    except:
-        if not os.path.exists(destfoldertopath):
-            os.makedirs(destfoldertopath)
-        import urllib.request, zipfile, io
-        urltofetch = FILESTOFETCH.get(DRIVER)
-        print("Fetching", urltofetch)
-        filestream = urllib.request.urlopen(urltofetch)
-        datatowrite = filestream.read()
-        zfile = zipfile.ZipFile(io.BytesIO(datatowrite))
-        zfile.extractall(destfoldertopath)
-        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], destfoldertopath])
-        driver = DRIVERCREATION()
+    driver = getOneDriver()
 
     CURRENTDRIVER=driver
     # testing
@@ -76,7 +30,9 @@ def getBanqueCDriver(quit_at_end=True):
     div = driver.find_element_by_id('gauche')
     a = div.find_elements_by_tag_name('img')[0]
     a.click()
-
+    while not driver.find_elements_by_name("CCPTE"):
+        print("Attente affichage page login")
+        time.sleep(1)
     driver.find_element_by_name("CCPTE").send_keys(username)
 
     tds = driver.find_elements_by_tag_name("td")
@@ -91,6 +47,7 @@ def getBanqueCDriver(quit_at_end=True):
         nb2td[i].click()
 
     driver.execute_script("ValidCertif();")
+    time.sleep(2)
     
     try:
         yield driver
@@ -187,7 +144,7 @@ def listMovements(driver):
     return toreturn
 
 if __name__ == '__main__':
-    with getBanqueCDriver( False ) as driver:
+    with getBanqueCDriver( True ) as driver:
         goToAccounts(driver)
         accounts = listAccounts(driver)
         print(*[k[1:] for k in accounts], sep="\n")

@@ -16,6 +16,9 @@ from email.mime.text import MIMEText
 DB = dict()
     # lastUpdate = last update time
     # accountXXXXXX = [lastupdatetime, (date, text, amount)]
+    # accountXXXXXXtotal = total
+ACCOUNTKEY = "account%s"
+ACCOUNTTOTAL = "account%stotal"
 DBFILE = "sentMovements.db"
 
 def read():
@@ -47,9 +50,12 @@ def main():
                 informationToSend.append("Double écriture présente sur le {} {} de {}"
                                          .format(
                                          name, number, owner))
-            if "account%s" % number not in DB:
-                DB["account%s" % number] = []
-            known = set(DB["account%s" % number])
+            if ACCOUNTKEY % number not in DB:
+                DB[ACCOUNTKEY % number] = []
+            if ACCOUNTTOTAL % number not in DB:
+                DB[ACCOUNTTOTAL % number] = 0
+            predicted = DB[ACCOUNTTOTAL % number]
+            known = set(DB[ACCOUNTKEY % number])
             firstchange = True
             changes = []
             # analyse de chaque mouvement
@@ -57,25 +63,30 @@ def main():
                 if movement in known:
                     continue
                 if firstchange:
-                    DB["account%s" % number].append(datetime.datetime.now())
+                    DB[ACCOUNTKEY % number].append(datetime.datetime.now())
                     firstchange = False
-                DB["account%s" % number].append(movement)
+                DB[ACCOUNTKEY % number].append(movement)
                 changes.append(movement)
+                predicted += movement[-1]
             if not changes:
                 continue
-            
-            informationToSend.append("{} mouvements sur le {} {} de {}, reste {}€"
+            # affichage d'information
+            informationToSend.append("{} mouvements sur le {} {} de {}, reste <b>{:.2f}&nbsp;€</b>"
                                          .format(len(changes),
                                          name, number, owner, amount))
-
+            if predicted != amount:
+                informationToSend.append("Normalement il devrait y avoir <b>{:.2f}&nbsp;€</b>, il manque <b>{:+.2f}&nbsp;€</b>."
+                                         .format(predicted, amount - predicted))
+            DB[ACCOUNTTOTAL % number] = amount
+            # affichage des mouvements
             table = "<table>\n<tr><th>Date</th><th>Quoi</th><th>Combien</th></tr>\n"
             for date, text, amount in changes:
                 table += '''<tr>
-<td class="date">{}</td>
-<td class="text">{}</td>
-<td class="amount">{:+.2f}</td>
+<td class="mvt date">{}</td>
+<td class="mvt text"><small>{}</small></td>
+<td class="mvt amount">{:+.2f}</td>
 </tr>\n'''.format(date, html.escape(text).replace('\n', '<br/>'), amount)
-            table += "</table>"
+            table += "</table><hr/>"
             informationToSend.append(table)
         save()
     # create e-mail
@@ -85,13 +96,12 @@ def main():
 
     print("Preparing e-mail...")    
     me = smtpuser
-    you = sendMovementsTo
 
     # Create message container - the correct MIME type is multipart/alternative.
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Mouvements des comptes"
-    msg['From'] = me
-    msg['To'] = you
+    msg['From'] = smtpuser
+    msg['To'] = ", ".join(sendMovementsTo)
 
     # Create the body of the message (a plain-text and an HTML version).
     text = ""
@@ -102,6 +112,9 @@ def main():
     htmldata = """\
     <html>
       <head></head>
+      <style type="text/css">
+.mvt.text {{ font-size: 75%; }}
+      </style>
       <body>
         {}
       </body>
@@ -124,8 +137,8 @@ def main():
         s.login(smtpuser, smtppassword)
         # sendmail function takes 3 arguments: sender's address, recipient's address
         # and message to send - here it is sent as one string.
-        print("Sending email to", you, "...")
-        s.sendmail(me, you, msg.as_string())
+        print("Sending email to", msg['To'], "...")
+        s.sendmail(smtpuser, sendMovementsTo, msg.as_string())
         s.quit()
     print("Done!")
     
