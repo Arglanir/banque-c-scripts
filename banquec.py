@@ -1,8 +1,9 @@
-import sys, subprocess, os, time, contextlib
+import sys, subprocess, os, time, contextlib, re
 from preparation import getOneDriver
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import JavascriptException, NoSuchElementException
+from collections import namedtuple
 
 CURRENTDRIVER = None
 
@@ -125,6 +126,11 @@ def displayMovements(driver, accountelement):
         print("En attente de l'affichage de l'historique... %ss %sb\r" % (counter, len(bs)))
         time.sleep(1)
 
+
+DATEPATTERN = re.compile(r"(?P<day>\d\d?)/(?P<month>\d\d?)")
+class MovementEntry(namedtuple("Entry", "date text amount")):
+    pass
+
 def listMovements(driver):
     # return list (date, text, amount)
     toreturn = []
@@ -140,7 +146,7 @@ def listMovements(driver):
         except ValueError as e:
             print(repr(e))
             continue
-        toreturn.append((date, text, amount))
+        toreturn.append(MovementEntry(date, text, amount))
     return toreturn
 
 if __name__ == '__main__':
