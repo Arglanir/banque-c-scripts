@@ -8,6 +8,7 @@ import datetime
 
 import smtplib
 import html
+import math
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -20,6 +21,9 @@ DB = dict()
 ACCOUNTKEY = "account%s"
 ACCOUNTTOTAL = "account%stotal"
 DBFILE = "sentMovements.db"
+
+# method for amount equality
+isclose = lambda a,b: math.isclose(a,b,abs_tol=0.001)
 
 def read():
     global DB
@@ -74,7 +78,7 @@ def main():
             informationToSend.append("{} mouvements sur le {} {} de {}, reste <b>{:.2f}&nbsp;€</b>"
                                          .format(len(changes),
                                          name, number, owner, amount))
-            if predicted != amount:
+            if not isclose(predicted, amount):
                 informationToSend.append("Normalement il devrait y avoir <b>{:.2f}&nbsp;€</b>, il manque <b>{:+.2f}&nbsp;€</b>."
                                          .format(predicted, amount - predicted))
             DB[ACCOUNTTOTAL % number] = amount
