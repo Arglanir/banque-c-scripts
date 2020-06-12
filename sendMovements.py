@@ -1,7 +1,7 @@
 """Ce script envoie les derniers mouvements journaliers aux adresses indiquées"""
 
 from banquec import getBanqueCDriver, goToAccounts, listAccounts, displayMovements, listMovements
-from configuration import smtphost, smtpuser, smtppassword, sendMovementsTo, encrypt, decrypt
+from configuration import smtphost, smtpuser, smtppassword, sendMovementsTo, encrypt, decrypt, updateDb, updateEntry
 import sys, os
 import pickle
 import datetime
@@ -9,6 +9,7 @@ import datetime
 import smtplib
 import html
 import math
+
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -21,6 +22,13 @@ DB = dict()
 ACCOUNTKEY = "account%s"
 ACCOUNTTOTAL = "account%stotal"
 DBFILE = "sentMovements.db"
+
+TEST = False
+if TEST:
+    import shutil
+    shutil.copyfile(os.path.join(os.path.dirname(__file__), DBFILE),
+                    os.path.join(os.path.dirname(__file__), DBFILE)+"_temp")
+    DBFILE += "_temp"
 
 # method for amount equality
 isclose = lambda a,b: math.isclose(a,b,abs_tol=0.001)
@@ -42,6 +50,7 @@ def save():
 
 def main():
     read()
+    updateDb(DB)
     informationToSend = []
     with getBanqueCDriver() as driver:
         goToAccounts(driver)
@@ -84,12 +93,15 @@ def main():
             DB[ACCOUNTTOTAL % number] = amount
             # affichage des mouvements
             table = "<table>\n<tr><th>Date</th><th>Quoi</th><th>Combien</th></tr>\n"
-            for date, text, amount in changes:
+            for entry in changes:
+                entry2 = updateEntry(entry)
+                date, text, amount = entry2
+                title = "" if text == entry.text else entry.text
                 table += '''<tr>
 <td class="mvt date">{}</td>
-<td class="mvt text"><small>{}</small></td>
+<td class="mvt text" title="{}"><small>{}</small></td>
 <td class="mvt amount">{:+.2f}</td>
-</tr>\n'''.format(date, html.escape(text).replace('\n', '<br/>'), amount)
+</tr>\n'''.format(date, html.escape(title), html.escape(text).replace('\n', '<br/>'), amount)
             table += "</table><hr/>"
             informationToSend.append(table)
         save()
@@ -124,7 +136,10 @@ def main():
       </body>
     </html>
     """.format(text)
-    
+
+    if TEST:
+        print(htmldata)
+        return
 
     # Record the MIME types of both parts - text/plain and text/html.
     part1 = MIMEText(text, 'plain')
