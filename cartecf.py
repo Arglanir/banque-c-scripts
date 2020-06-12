@@ -60,6 +60,10 @@ def getCarteCFDriver(quit_at_end=True):
         dnb = pytesseract.image_to_string(ImageOps.invert(img.convert("L")), config="--psm 10")
         digit2button[dnb] = digit
         print("Recognized digit:", repr(dnb))
+    # some times, 2 is not recognized
+    if digit2button.get("2") is None:
+        digit2button["2"] = digit2button.get("z", digit2button.get("Z"))
+
 
     for d in password:
         digit2button[d].click()
