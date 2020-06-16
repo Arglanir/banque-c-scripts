@@ -47,7 +47,7 @@ def getCarteCFDriver(quit_at_end=True):
 
     while True:
         digits = driver.find_elements_by_class_name("digit")
-        if digits:
+        if len(digits) >= 10:
             break
         time.sleep(1)
 
