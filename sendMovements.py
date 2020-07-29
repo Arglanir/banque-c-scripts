@@ -93,6 +93,7 @@ def main():
             DB[ACCOUNTTOTAL % number] = amount
             # affichage des mouvements
             table = "<table>\n<tr><th>Date</th><th>Quoi</th><th>Combien</th></tr>\n"
+            print("Generating message for", len(changes), "changes.")
             for entry in changes:
                 entry2 = updateEntry(entry)
                 date, text, amount = entry2
@@ -162,4 +163,8 @@ def main():
     print("Done!")
     
 if __name__ == '__main__':
+    if "logtofile" in sys.argv:
+        sys.stdout = open('debug.log', 'w', buffering=1)
+        sys.stderr = sys.stdout
+        print(datetime.datetime.now())
     main()
