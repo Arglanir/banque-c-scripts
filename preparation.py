@@ -13,26 +13,22 @@ except ImportError:
     # TODO: download pip
     # TODO: install pip
 
+import importlib
 
-try:
-    import cryptography
-except ImportError:
-    print("Installing cryptography")
-    p = subprocess.Popen([sys.executable, "-m", "pip", "install", "-U", "cryptography"],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    print(p.communicate())
-    import cryptography
+def importOrInstall(libname):
+    try:
+         importlib.import_module(libname)
+    except ImportError:
+        print("Installing", libname)
+        p = subprocess.Popen([sys.executable, "-m", "pip", "install", "-U", libname],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        print(p.communicate())
+        return importlib.import_module(libname)
 
-try:
-    import selenium
-except ImportError:
-    print("Installing Selenium")
-    p = subprocess.Popen([sys.executable, "-m", "pip", "install", "-U", "selenium"],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    print(p.communicate())
-    import selenium
+
+cryptography = importOrInstall("cryptography")
+selenium = importOrInstall("selenium")
 from selenium import webdriver
 
 
