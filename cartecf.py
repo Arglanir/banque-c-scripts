@@ -62,7 +62,7 @@ def getCarteCFDriver(quit_at_end=True):
         print("Recognized digit:", repr(dnb))
     # some times, 2 is not recognized
     if digit2button.get("2") is None:
-        digit2button["2"] = digit2button.get("z", digit2button.get("Z"))
+        digit2button["2"] = [v for k, v in digit2button.items() if "z" in k.lower()][0]
 
 
     for d in password:
