@@ -132,3 +132,4 @@ dmypy.json
 drivers/
 configuration.py
 sentMovements.db
+*.json
